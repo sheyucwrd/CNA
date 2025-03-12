@@ -153,13 +153,13 @@ while True:
       # originServerRequest is the first line in the request and
       # originServerRequestHeader is the second line in the request
       # ~~~~ INSERT CODE ~~~~
-      originServerRequest = method + " " + resource + " " + version + "\r\n"
-      originServerRequestHeader = "Host: " + hostname + "\r\nConnection: close\r\n"
+      originServerRequest = f"{method} {resource} {version}\r\n"
+      originServerRequestHeader = f"Host: {hostname}\r\nConnection: close\r\n"
       # request = originServerRequest + originServerRequestHeader + "\r\n"
       # ~~~~ END CODE INSERT ~~~~
 
       # Construct the request to send to the origin server
-      request = originServerRequest + '\r\n' + originServerRequestHeader + '\r\n\r\n'
+      request = originServerRequest + originServerRequestHeader + "\r\n\r\n"
 
       # Request the web resource from origin server
       print ('Forwarding request to origin server:')
