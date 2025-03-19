@@ -1,0 +1,15 @@
+HTTP/1.1 302 Moved Temporarily
+Server: nginx/1.10.3 (Ubuntu)
+Date: Wed, 19 Mar 2025 04:00:27 GMT
+Content-Type: text/html
+Content-Length: 170
+Connection: close
+Location: https://textera.badssl.com/icons/icon-red.png
+
+<html>
+<head><title>302 Found</title></head>
+<body bgcolor="white">
+<center><h1>302 Found</h1></center>
+<hr><center>nginx/1.10.3 (Ubuntu)</center>
+</body>
+</html>
