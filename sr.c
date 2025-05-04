@@ -88,7 +88,9 @@ void A_input(struct pkt packet) {
     ackn = packet.acknum;
     seqfirst = (A_nextseqnum - windowcount + SEQSPACE) % SEQSPACE;
     seqlast  = (seqfirst + windowcount - 1) % SEQSPACE;
-
+    bool inWindow = (seqfirst <= A_nextseqnum)
+                  ? (ackn >= seqfirst && ackn < A_nextseqnum)
+                  : (ackn >= seqfirst || ackn < A_nextseqnum);
     if (windowcount > 0 &&
         ((seqfirst <= seqlast && ackn >= seqfirst && ackn <= seqlast) ||
          (seqfirst > seqlast && (ackn >= seqfirst || ackn <= seqlast))) &&
