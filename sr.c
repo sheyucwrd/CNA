@@ -200,58 +200,59 @@ void A_init(void)
 
 /********* Receiver (B)  variables and procedures ************/
 
-static int expectedseqnum; /* the sequence number expected next by the receiver */
-static int B_nextseqnum;   /* the sequence number for the next packets sent by B */
-
+   /* the sequence number for the next packets sent by B */
+static bool       received[SEQSPACE] = {false};
+static struct pkt recv_buffer[SEQSPACE];
+static int        expectedseqnum;
+static int        B_nextseqnum;
 
 /* called from layer 3, when a packet arrives for layer 4 at B*/
-void B_input(struct pkt packet)
-{
-  struct pkt sendpkt;
-  int i;
+void B_input(struct pkt packet) {
+    struct pkt sendpkt;
+    int i;
+    int offset;            
+    
+    /* 1) 先构造 sendpkt 的固定字段 */
+    sendpkt.seqnum = B_nextseqnum;
+    B_nextseqnum   = (B_nextseqnum + 1) % 2;
+    for (i = 0; i < 20; i++)
+        sendpkt.payload[i] = '0';
 
-  /* if not corrupted and received packet is in order */
-  if  ( (!IsCorrupted(packet)))  {
-    if (TRACE > 0)
-      printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
-    packets_received++;
-
-    if (!IsCorrupted(packet) && packet.seqnum == expectedseqnum) {
-        if (TRACE > 0)
-            printf("----B: packet %d is correctly received, send ACK!\n",
-                   packet.seqnum);
-
-        /* deliver up */
-        tolayer5(B, packet.payload);
-
-        /* ACK 本次包 */
-        sendpkt.acknum = expectedseqnum;
-
-        /* 下一个期望序号 */
-        expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
-    }
-    else {
-        /* 保留原有的“损坏或非预期”打印 */
+    /* 2) 校验＆统计 */
+    if (IsCorrupted(packet)) {
         if (TRACE > 0)
             printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
-        /* 重发对上一次已交付包的 ACK */
         sendpkt.acknum = (expectedseqnum + SEQSPACE - 1) % SEQSPACE;
     }
+    else {
+        packets_received++;
 
-  /* create packet */
-  sendpkt.seqnum = B_nextseqnum;
-  B_nextseqnum = (B_nextseqnum + 1) % 2;
+        /* now it’s safe to assign offset, because the declaration was up top */
+        offset = (packet.seqnum + SEQSPACE - expectedseqnum) % SEQSPACE;
+        if (offset < WINDOWSIZE && !received[packet.seqnum]) {
+            received[packet.seqnum]     = true;
+            recv_buffer[packet.seqnum] = packet;
+        }
 
-  /* we don't have any data to send.  fill payload with 0's */
-  for ( i=0; i<20 ; i++ )
-    sendpkt.payload[i] = '0';
+        while (received[expectedseqnum]) {
+            if (TRACE > 0)
+                printf("----B: packet %d is correctly received, send ACK!\n",
+                       expectedseqnum);
 
-  /* computer checksum */
-  sendpkt.checksum = ComputeChecksum(sendpkt);
+            tolayer5(B, recv_buffer[expectedseqnum].payload);
+            received[expectedseqnum] = false;
+            expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
+        }
 
-  /* send out packet */
-  tolayer3 (B, sendpkt);
-}}
+        sendpkt.acknum = packet.seqnum;
+    }
+
+    /* 3) 发送 ACK */
+    sendpkt.checksum = ComputeChecksum(sendpkt);
+    tolayer3(B, sendpkt);
+}
+
+
 
 /* the following routine will be called once (only) before any other */
 /* entity B routines are called. You can use it to do any initialization */
